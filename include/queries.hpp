@@ -21,7 +21,10 @@ struct PointToShapeDistanceVisitor {
 
     explicit PointToShapeDistanceVisitor(const Point2D &p) : point(p) {}
 
-    /* ваш код здесь */
+    template <typename T>
+    double operator()(T &&shape) {
+        return point.DistanceTo(shape.Center());
+    }
 };
 
 /*
@@ -35,8 +38,16 @@ struct PointToShapeDistanceVisitor {
  * Для всех остальных требуется вернуть пустое значение
  */
 struct ShapeToShapeDistanceVisitor {
+    /* template <typename T1, typename T2>
+    std::optional<double> operator()(T1 &&, T2 &&) {
+        return std::nullopt;
+    }
 
-    /* ваш код здесь */
+    // TODO +check what tests are needed
+    template <typename T1, typename T2>
+    std::optional<double> operator()(T1 &&lhs, T2 &&rhs) {
+        return lhs.Center().DistanceTo(rhs.Center());
+    }*/
 };
 
 /*

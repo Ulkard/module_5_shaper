@@ -279,28 +279,18 @@ struct std::formatter<std::vector<geometry::Point2D>> {
 
     constexpr auto parse(std::format_parse_context &ctx) {
         auto it = ctx.begin();
-        std::string_view spec(it, ctx.end());
-        /* while (it != ctx.end() && *it != '}') {
-            if (*it == 'h' || *it == 'H')
-                use_new_line = true;
-            ++it;
-        } */
-        std::print("{}", spec);
-
-        if (spec == "new_line"sv) {
+        if (std::string_view(ctx).starts_with("new_line")) {
             use_new_line = true;
+            return it + "new_line"sv.size();
         }
-        /* if (it != ctx.end() && *it != '}') {
-            throw std::format_error("invalid format specifier for MyType");
-        } */
 
-        return spec.end();
+        return it;
     }
 
     template <typename FormatContext>
     auto format(const std::vector<geometry::Point2D> &v, FormatContext &ctx) const {
         for (const geometry::Point2D &p : v) {
-            std::format_to(ctx.out(), "{}{}", use_new_line ? '\n' : ' ', p);
+            std::format_to(ctx.out(), "{}{}", use_new_line ? "\n\t" : " ", p);
         }
 
         return ctx.out();
