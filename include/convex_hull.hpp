@@ -24,6 +24,6 @@ private:
     std::vector<Point2D> s;
 };
 
-GeometryResult<std::vector<Point2D>> GrahamScan(const std::vector<Shape> &points);
+GeometryResult<std::vector<Point2D>> GrahamScan(const Shapes &points);
 
 }  // namespace geometry::convex_hull

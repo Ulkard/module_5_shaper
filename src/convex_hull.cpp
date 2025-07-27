@@ -4,6 +4,8 @@
 #include <expected>
 #include <functional>
 
+#include "visualization.hpp"
+
 namespace geometry::convex_hull {
 
 double CrossProduct(Point2D p1, Point2D middle, Point2D p2) {
@@ -33,7 +35,7 @@ Orientation getOrientation(const Point2D &p0, const Point2D &p1, const Point2D &
     return (val > 0) ? Orientation::CW : Orientation::CCW;
 }
 
-GeometryResult<std::vector<Point2D>> GrahamScan(const std::vector<Shape> &shapes) {
+GeometryResult<std::vector<Point2D>> GrahamScan(const Shapes &shapes) {
     namespace rv = std::ranges::views;
     ShapeToPointsVisitor visitor;
     StackForGrahamScan hull_stack;
@@ -57,11 +59,9 @@ GeometryResult<std::vector<Point2D>> GrahamScan(const std::vector<Shape> &shapes
     });
 
     for (const Point2D &point : points) {
-        while (hull_stack.Size() > 1) {
-            if (getOrientation(hull_stack.NextToTop(), hull_stack.Top(), point) == Orientation::CCW) {
-                hull_stack.Push(hull_stack.Top());
-                break;
-            }
+        while ((hull_stack.Size() > 1) &&
+               getOrientation(hull_stack.NextToTop(), hull_stack.Top(), point) == Orientation::CW) {
+            hull_stack.Pop();
         }
         hull_stack.Push(point);
     }

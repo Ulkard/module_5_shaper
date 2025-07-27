@@ -2,6 +2,7 @@
 #include "geometry.hpp"
 #include <algorithm>
 #include <format>
+#include <print>
 #include <set>
 #include <vector>
 
@@ -58,7 +59,8 @@ struct DelaunayTriangle {
     }
 
     bool operator==(const DelaunayTriangle &other) const {
-        return ContainsPoint(other.a) && ContainsPoint(other.b) && ContainsPoint(other.c);
+        return std::ranges::contains(vertices(), other.a) && std::ranges::contains(vertices(), other.b) &&
+               std::ranges::contains(vertices(), other.c);
     }
 
     std::vector<Point2D> vertices() const { return {a, b, c}; }
@@ -127,7 +129,9 @@ inline bool SharesEdge(const Edge &edge, const DelaunayTriangle &triangle) {
 }
 
 inline GeometryResult<std::vector<DelaunayTriangle>> DelaunayTriangulation(std::span<const Point2D> points) {
-
+    if (points.size() < 3) {
+        return std::unexpected{GeometryError::InsufficientPoints};
+    }
     const auto super = makeSuperTriangle(points);
     std::vector<DelaunayTriangle> triangulation{super};
 
@@ -174,7 +178,7 @@ inline GeometryResult<std::vector<DelaunayTriangle>> DelaunayTriangulation(std::
     // Удаляем все треугольники, включающие вершины супер-треугольника
     std::erase_if(triangulation, [&super](const DelaunayTriangle &t) {
         for (const auto &point : t.vertices()) {
-            if (super.ContainsPoint(point)) {
+            if (std::ranges::contains(super.vertices(), point)) {
                 return true;
             }
         }
@@ -183,6 +187,7 @@ inline GeometryResult<std::vector<DelaunayTriangle>> DelaunayTriangulation(std::
 
     return triangulation;
 }
+
 }  // namespace geometry::triangulation
 
 template <>

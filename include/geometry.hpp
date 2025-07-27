@@ -110,13 +110,17 @@ struct Triangle {
         double sp = (ab + bc + ca) / 2;
         return std::sqrt((sp - ab) * (sp - bc) * (sp - ca));
     }
-    double Height() const { return std::ranges::max(/* {a,b,c} */ Vertices(), std::greater<>(), &Point2D::y).y; }
+    double Height() const {
+        return (std::ranges::max(Vertices(), std::less<>(), &Point2D::y) -
+                std::ranges::min(Vertices(), std::less<>(), &Point2D::y))
+            .y;
+    }
     Point2D Center() const { return (a + b + c) / 3; }
     BoundingBox BoundBox() const {
-        return {std::ranges::min(/* {a,b,c} */ Vertices(), std::less<>(), &Point2D::x).x,
-                std::ranges::min(/* {a,b,c} */ Vertices(), std::less<>(), &Point2D::y).y,
-                std::ranges::max(/* {a,b,c} */ Vertices(), std::greater<>(), &Point2D::x).x,
-                std::ranges::max(/* {a,b,c} */ Vertices(), std::greater<>(), &Point2D::y).y};
+        return {std::ranges::min(Vertices(), std::less<>(), &Point2D::x).x,
+                std::ranges::min(Vertices(), std::less<>(), &Point2D::y).y,
+                std::ranges::max(Vertices(), std::less<>(), &Point2D::x).x,
+                std::ranges::max(Vertices(), std::less<>(), &Point2D::y).y};
     }
     std::array<Point2D, 3> Vertices() const { return {a, b, c}; }
 
@@ -155,7 +159,7 @@ struct RegularPolygon {
     BoundingBox BoundBox() const {
         return {center_p.x - radius, center_p.y - radius, center_p.x + radius, center_p.y + radius};
     }
-    double Height() const { return center_p.y + radius; }
+    double Height() const { return std::abs(2 * radius); }
     Point2D Center() const { return center_p; }
 
     std::vector<Point2D> Vertices() const {
@@ -191,7 +195,7 @@ struct Circle {
     BoundingBox BoundBox() const {
         return {center_p.x - radius, center_p.y - radius, center_p.x + radius, center_p.y + radius};
     }
-    double Height() const { return center_p.y + radius; }
+    double Height() const { return std::abs(2 * radius); }
     Point2D Center() const { return center_p; }
 
     std::vector<Point2D> Vertices(size_t N = 30) const {
@@ -250,6 +254,7 @@ private:
 };
 
 using Shape = std::variant<Line, Triangle, Rectangle, RegularPolygon, Circle, Polygon>;
+using Shapes = std::vector<Shape>;
 
 enum class GeometryError { Unsupported, NoIntersection, InvalidInput, DegenrateCase, InsufficientPoints };
 
@@ -296,7 +301,7 @@ struct std::formatter<geometry::Line> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::Line &l, FormatContext &ctx) {
+    auto format(const geometry::Line &l, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "Line({}, {})", l.start, l.end);
     }
 };
@@ -306,7 +311,7 @@ struct std::formatter<geometry::Circle> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::Circle &c, FormatContext &ctx) {
+    auto format(const geometry::Circle &c, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "Circle(center={}, r={:.2f})", c.center_p, c.radius);
     }
 };
@@ -316,7 +321,7 @@ struct std::formatter<geometry::Rectangle> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::Rectangle &r, FormatContext &ctx) {
+    auto format(const geometry::Rectangle &r, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "Rectangle(bottom_left={}, w={:.2f}, h={:.2f})", r.bottom_left, r.width,
                               r.height);
     }
@@ -327,7 +332,7 @@ struct std::formatter<geometry::RegularPolygon> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::RegularPolygon &p, FormatContext &ctx) {
+    auto format(const geometry::RegularPolygon &p, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "RegularPolygon(center={}, r={:.2f}, sides={})", p.center_p, p.radius,
                               p.sides);
     }
@@ -337,7 +342,7 @@ struct std::formatter<geometry::Triangle> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::Triangle &t, FormatContext &ctx) {
+    auto format(const geometry::Triangle &t, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "Triangle({}, {}, {})", t.a, t.b, t.c);
     }
 };
@@ -346,7 +351,7 @@ struct std::formatter<geometry::Polygon> {
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const geometry::Polygon &poly, FormatContext &ctx) {
+    auto format(const geometry::Polygon &poly, FormatContext &ctx) const {
         auto out = ctx.out();
         out = std::format_to(out, "Polygon[{} points]: [", poly.Vertices().size());
 
@@ -355,5 +360,23 @@ struct std::formatter<geometry::Polygon> {
         }
 
         return std::format_to(out, "]");
+    }
+};
+
+template <>
+struct std::formatter<geometry::Shape> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const geometry::Shape &shape, FormatContext &ctx) const {
+        return std::visit(
+            [&](const auto &arg) {
+                // Format the active alternative
+                return std::format_to(ctx.out(), "{}", arg);
+            },
+            shape);
     }
 };
