@@ -78,7 +78,7 @@ struct BoundingBox {
     double min_x, min_y, max_x, max_y;
 
     bool Overlaps(const BoundingBox &other) const {
-        return !((max_x < other.min_x) && (min_x > other.max_x) && (max_y < other.min_y) && (min_y > other.max_y));
+        return !((max_x < other.min_x) || (min_x > other.max_x) || (max_y < other.min_y) || (min_y > other.max_y));
     }
     double Width() const { return max_x - min_x; }
     double Height() const { return max_y - min_y; }
@@ -250,14 +250,6 @@ private:
 };
 
 using Shape = std::variant<Line, Triangle, Rectangle, RegularPolygon, Circle, Polygon>;
-
-/*
- * В коде везде используется ReplaceMe. Ваша задача - удалить ReplaceMe и везде вместо него
- использовать наиболее подходящий тип для решения задачи
- */
-struct ReplaceMe {
-    ReplaceMe(std::vector<Shape>) {}
-};
 
 enum class GeometryError { Unsupported, NoIntersection, InvalidInput, DegenrateCase, InsufficientPoints };
 
