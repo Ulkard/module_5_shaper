@@ -10,8 +10,6 @@ namespace geometry::intersections {
 
 class IntersectionVisitor {
 public:
-    static constexpr double EPSILON = 1e-10;
-
     std::optional<Point2D> operator()(const Line &lhs, const Line &rhs) {
         if (!lhs.BoundBox().Overlaps(rhs.BoundBox())) {
             return std::nullopt;

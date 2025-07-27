@@ -19,6 +19,8 @@
 
 namespace geometry {
 
+static constexpr double EPSILON = 1e-10;
+
 struct Point2D {
     double x, y;
 

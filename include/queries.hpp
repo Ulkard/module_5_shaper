@@ -1,6 +1,7 @@
 #pragma once
 #include "geometry.hpp"
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <variant>
 
@@ -38,49 +39,82 @@ struct PointToShapeDistanceVisitor {
  * Для всех остальных требуется вернуть пустое значение
  */
 struct ShapeToShapeDistanceVisitor {
-    /* template <typename T1, typename T2>
+    std::optional<double> operator()(const Line &lhs, const Line &rhs) {
+        const auto [a, b] = lhs;
+        const auto [c, d] = rhs;
+        auto ccw = [](const Point2D &A, const Point2D &B, const Point2D &C) {
+            return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+        };
+
+        bool intersect = ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d);
+        if (intersect)
+            return 0.0;
+
+        return std::ranges::min({pointToLineDistance(a, rhs), pointToLineDistance(b, rhs), pointToLineDistance(c, lhs),
+                                 pointToLineDistance(d, lhs)});
+    }
+
+    std::optional<double> operator()(const Circle &lhs, const Circle &rhs) {
+        return lhs.Center().DistanceTo(rhs.Center()) - lhs.radius - rhs.radius;
+    }
+
+    template <typename T1, typename T2>
     std::optional<double> operator()(T1 &&, T2 &&) {
         return std::nullopt;
     }
 
-    // TODO +check what tests are needed
-    template <typename T1, typename T2>
-    std::optional<double> operator()(T1 &&lhs, T2 &&rhs) {
-        return lhs.Center().DistanceTo(rhs.Center());
-    }*/
+private:
+    double pointToLineDistance(const Point2D &p, const Line &line) {
+        const auto [a, b] = line;
+        if (a == b) {
+            return p.DistanceTo(a);
+        }
+        Point2D line_dir = line.Direction();
+        Point2D ap = p - a;
+
+        double t = ap.Dot(line_dir) / line_dir.Dot(line_dir);
+        t = std::clamp(t, 0.0, 1.0);
+
+        Point2D projection = a + line_dir * t;
+        return p.DistanceTo(projection);
+    }
 };
 
 /*
  * Функции-помощники
  */
 inline double DistanceToPoint(const Shape &shape, const Point2D &point) {
-
-    /* ваш код здесь */
-    return 0.0;
+    PointToShapeDistanceVisitor visitor(point);
+    return std::visit(visitor, shape);
 }
 
 inline BoundingBox GetBoundBox(const Shape &shape) {
-
-    /* ваш код здесь */
-    return {};
+    return std::visit(Multilambda{[](const Line &shape) { return shape.BoundBox(); },
+                                  [](const Triangle &shape) { return shape.BoundBox(); },
+                                  [](const Rectangle &shape) { return shape.BoundBox(); },
+                                  [](const RegularPolygon &shape) { return shape.BoundBox(); },
+                                  [](const Circle &shape) { return shape.BoundBox(); },
+                                  [](const Polygon &shape) { return shape.BoundBox(); }},
+                      shape);
 }
 
 inline double GetHeight(const Shape &shape) {
-
-    /* ваш код здесь */
-    return 0.0;
+    return std::visit(Multilambda{[](const Line &shape) { return shape.Height(); },
+                                  [](const Triangle &shape) { return shape.Height(); },
+                                  [](const Rectangle &shape) { return shape.Height(); },
+                                  [](const RegularPolygon &shape) { return shape.Height(); },
+                                  [](const Circle &shape) { return shape.Height(); },
+                                  [](const Polygon &shape) { return shape.Height(); }},
+                      shape);
 }
 
 inline bool BoundingBoxesOverlap(const Shape &shape1, const Shape &shape2) {
-
-    /* ваш код здесь */
-    return false;
+    return GetBoundBox(shape1).Overlaps(GetBoundBox(shape2));
 }
 
 std::optional<double> DistanceBetweenShapes(const Shape &shape1, const Shape &shape2) {
-
-    /* ваш код с ShapeToShapeDistanceVisitor здесь*/
-    return std::nullopt;
+    ShapeToShapeDistanceVisitor visitor;
+    return std::visit(visitor, shape1, shape2);
 }
 
 }  // namespace geometry::queries
