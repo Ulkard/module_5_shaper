@@ -1,6 +1,8 @@
 #pragma once
 #include "geometry.hpp"
 #include "queries.hpp"
+#include <algorithm>
+#include <functional>
 #include <print>
 #include <random>
 #include <ranges>
@@ -44,8 +46,8 @@ public:
         return Circle{center, size};
     }
 
-    std::vector<Shape> GenerateShapes(size_t count) {
-        std::vector<Shape> shapes;
+    Shapes GenerateShapes(size_t count) {
+        Shapes shapes;
         shapes.reserve(count);
 
         for (auto _ : std::views::iota(0u, count)) {
@@ -63,27 +65,24 @@ private:
     std::uniform_int_distribution<int> type_dist;
 };
 
-std::vector<std::pair<Shape, Shape>> FindAllCollisions(ReplaceMe shapes) {
-    std::vector<std::pair<Shape, Shape>> collisions;
-
-    /*
-     * Используйте библиотеку ranges, чтобы найти все коллизии между фигурами методом BoundingBoxesOverlap
-     *
-     * Также используйте наиболее эффективный метод добавления объектов в collisions
-     */
-
-    return collisions;
+[[nodiscard]] std::vector<std::pair<Shape, Shape>> FindAllCollisions(const Shapes &shapes) {
+    namespace rv = std::ranges::views;
+    auto unique_pairs = rv::iota(0u, shapes.size()) | rv::transform([&shapes](size_t i) {
+                            return rv::iota(i + 1, shapes.size()) |
+                                   rv::transform([i, &shapes](size_t j) { return std::pair{shapes[i], shapes[j]}; });
+                        }) |
+                        rv::join;
+    return unique_pairs |
+           rv::filter([](auto &&elem) { return queries::BoundingBoxesOverlap(elem.first, elem.second); }) |
+           std::ranges::to<std::vector>();
 }
 
-std::optional<size_t> FindHighestShape(ReplaceMe shapes) {
-
-    /*
-     * Используйте библиотеку ranges, чтобы найти самую высокую фигуру
-     *
-     * Важно: использование ручной итерации по фигурам не разрешается
-     */
-
-    return std::nullopt;
+[[nodiscard]] std::optional<size_t> FindHighestShape(const Shapes &shapes) noexcept {
+    if (shapes.empty()) {
+        return std::nullopt;
+    }
+    auto it = std::ranges::max_element(shapes, {}, queries::GetHeight);
+    return std::distance(shapes.begin(), it);
 }
 
 }  // namespace geometry::utils
