@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <format>
 #include <print>
-#include <set>
 #include <vector>
 
 namespace geometry::triangulation {
@@ -13,13 +12,13 @@ struct DelaunayTriangle {
 
     DelaunayTriangle(Point2D a, Point2D b, Point2D c) : a(a), b(b), c(c) {}
 
-    bool ContainsPoint(const Point2D &p) const {
+    [[nodiscard]] bool ContainsPoint(const Point2D &p) const noexcept {
         Point2D center = Circumcenter();
         double radius = Circumradius();
         return center.DistanceTo(p) <= radius + EPSILON;
     }
 
-    Point2D Circumcenter() const {
+    [[nodiscard]] Point2D Circumcenter() const noexcept {
         double d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
         if (std::abs(d) < EPSILON) {
             return {(a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3};
@@ -36,12 +35,12 @@ struct DelaunayTriangle {
         return {ux, uy};
     }
 
-    double Circumradius() const {
+    [[nodiscard]] double Circumradius() const noexcept {
         Point2D center = Circumcenter();
         return center.DistanceTo(a);
     }
 
-    bool SharesEdge(const DelaunayTriangle &other) const {
+    [[nodiscard]] bool SharesEdge(const DelaunayTriangle &other) const noexcept {
         std::vector<Point2D> this_points = {a, b, c};
         std::vector<Point2D> other_points = {other.a, other.b, other.c};
 
@@ -58,12 +57,12 @@ struct DelaunayTriangle {
         return shared_count == 2;
     }
 
-    bool operator==(const DelaunayTriangle &other) const {
+    [[nodiscard]] bool operator==(const DelaunayTriangle &other) const noexcept {
         return std::ranges::contains(vertices(), other.a) && std::ranges::contains(vertices(), other.b) &&
                std::ranges::contains(vertices(), other.c);
     }
 
-    std::vector<Point2D> vertices() const { return {a, b, c}; }
+    [[nodiscard]] std::vector<Point2D> vertices() const noexcept { return {a, b, c}; }
 };
 
 struct Edge {
@@ -75,7 +74,7 @@ struct Edge {
         }
     }
 
-    bool operator<(const Edge &other) const {
+    [[nodiscard]] bool operator<(const Edge &other) const noexcept {
         if (std::abs(p1.x - other.p1.x) > EPSILON)
             return p1.x < other.p1.x;
         if (std::abs(p1.y - other.p1.y) > EPSILON)
@@ -85,13 +84,13 @@ struct Edge {
         return p2.y < other.p2.y;
     }
 
-    bool operator==(const Edge &other) const {
+    [[nodiscard]] bool operator==(const Edge &other) const noexcept {
         return std::abs(p1.x - other.p1.x) < EPSILON && std::abs(p1.y - other.p1.y) < EPSILON &&
                std::abs(p2.x - other.p2.x) < EPSILON && std::abs(p2.y - other.p2.y) < EPSILON;
     }
 };
 
-inline DelaunayTriangle makeSuperTriangle(std::span<const Point2D> points) {
+[[nodiscard]] inline DelaunayTriangle makeSuperTriangle(std::span<const Point2D> points) noexcept {
     double min_x = points[0].x;
     double max_x = points[0].x;
     double min_y = points[0].y;
@@ -114,11 +113,11 @@ inline DelaunayTriangle makeSuperTriangle(std::span<const Point2D> points) {
     return DelaunayTriangle(p1, p2, p3);
 }
 
-inline std::vector<Edge> GetEdges(const DelaunayTriangle &triangle) {
+[[nodiscard]] inline std::vector<Edge> GetEdges(const DelaunayTriangle &triangle) {
     return {{triangle.a, triangle.b}, {triangle.b, triangle.c}, {triangle.c, triangle.a}};
 }
 
-inline bool SharesEdge(const Edge &edge, const DelaunayTriangle &triangle) {
+[[nodiscard]] inline bool SharesEdge(const Edge &edge, const DelaunayTriangle &triangle) {
     std::vector<Edge> triangle_edges = GetEdges(triangle);
     for (const auto &e : triangle_edges) {
         if (e == edge) {
@@ -128,7 +127,8 @@ inline bool SharesEdge(const Edge &edge, const DelaunayTriangle &triangle) {
     return false;
 }
 
-inline GeometryResult<std::vector<DelaunayTriangle>> DelaunayTriangulation(std::span<const Point2D> points) {
+[[nodiscard]] inline GeometryResult<std::vector<DelaunayTriangle>>
+DelaunayTriangulation(std::span<const Point2D> points) {
     if (points.size() < 3) {
         return std::unexpected{GeometryError::InsufficientPoints};
     }
@@ -177,12 +177,8 @@ inline GeometryResult<std::vector<DelaunayTriangle>> DelaunayTriangulation(std::
 
     // Удаляем все треугольники, включающие вершины супер-треугольника
     std::erase_if(triangulation, [&super](const DelaunayTriangle &t) {
-        for (const auto &point : t.vertices()) {
-            if (std::ranges::contains(super.vertices(), point)) {
-                return true;
-            }
-        }
-        return false;
+        return std::ranges::any_of(t.vertices(),
+                                   [&super](const Point2D &p) { return std::ranges::contains(super.vertices(), p); });
     });
 
     return triangulation;

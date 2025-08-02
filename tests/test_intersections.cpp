@@ -12,12 +12,14 @@ TEST(intersections, line_x_line) {
     const Shape line_1(Line{{0, 0}, {1, 1}});
     const Shape line_2(Line{{1, 0}, {0, 1}});
     const Shape distant_line(Line{{3, 3}, {4, 4}});
+    const Shape same_line(Line{{0, 0}, {1, 1}});
 
     IntersectionVisitor visitor;
     Point2D p{0.5, 0.5};
     EXPECT_DOUBLE_EQ(std::visit(visitor, line_1, line_2)->DistanceTo(p), 0);
     EXPECT_EQ(std::visit(visitor, distant_line, line_2), std::nullopt);
     EXPECT_EQ(std::visit(visitor, line_1, distant_line), std::nullopt);
+    EXPECT_EQ(std::visit(visitor, line_1, same_line), std::nullopt);
 }
 
 TEST(intersections, line_x_circle) {
@@ -46,6 +48,12 @@ TEST(intersections, circle_x_circle) {
     EXPECT_DOUBLE_EQ(result.y, p.y);
     EXPECT_EQ(std::visit(visitor, circle_1, distant_circle), std::nullopt);
     EXPECT_EQ(std::visit(visitor, distant_circle, circle_2), std::nullopt);
+
+    const Shape concentric_circle_1(Circle({0, 0}, 1));
+    const Shape concentric_circle_2(Circle({0, 0}, 3));
+    EXPECT_EQ(std::visit(visitor, circle_1, circle_1), std::nullopt);
+    EXPECT_EQ(std::visit(visitor, circle_1, concentric_circle_1), std::nullopt);
+    EXPECT_EQ(std::visit(visitor, circle_1, concentric_circle_2), std::nullopt);
 }
 
 TEST(intersections, unexpected_type) {

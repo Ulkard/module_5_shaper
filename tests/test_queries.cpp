@@ -35,7 +35,13 @@ TEST(ShapeToShapeDistanceVisitor, circle_x_circle) {
     const Shape circle_2(Circle({4, 0}, 1));
     const Shape crossed_circle(Circle({3, 0}, 2));
     EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, circle_2), 1);
-    EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, crossed_circle), -1);
+    EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, circle_1), 0);
+    EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, crossed_circle), 0);
+
+    const Shape concentric_circle_1(Circle({0, 0}, 1));
+    const Shape concentric_circle_2(Circle({0, 0}, 3));
+    EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, concentric_circle_1), 0);
+    EXPECT_DOUBLE_EQ(*std::visit(visitor, circle_1, concentric_circle_2), 0);
 }
 
 TEST(ShapeToShapeDistanceVisitor, unexpected_types) {

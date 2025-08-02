@@ -10,7 +10,7 @@ namespace geometry::intersections {
 
 class IntersectionVisitor {
 public:
-    std::optional<Point2D> operator()(const Line &lhs, const Line &rhs) {
+    [[nodiscard]] std::optional<Point2D> operator()(const Line &lhs, const Line &rhs) const noexcept {
         if (!lhs.BoundBox().Overlaps(rhs.BoundBox())) {
             return std::nullopt;
         }
@@ -38,7 +38,7 @@ public:
         return std::nullopt;
     }
 
-    std::optional<Point2D> operator()(const Line &line, const Circle &circle) {
+    [[nodiscard]] std::optional<Point2D> operator()(const Line &line, const Circle &circle) const noexcept {
         if (!line.BoundBox().Overlaps(circle.BoundBox())) {
             return std::nullopt;
         }
@@ -53,10 +53,10 @@ public:
         double c = fx * fx + fy * fy - circle.radius * circle.radius;
 
         double discriminant = b * b - 4 * a * c;
-        discriminant = std::sqrt(discriminant);
         if (discriminant < 0) {
             return std::nullopt;
         }
+        discriminant = std::sqrt(discriminant);
 
         double x1 = (-b - discriminant) / (2 * a);
         double x2 = (-b + discriminant) / (2 * a);
@@ -71,9 +71,11 @@ public:
 
         return std::nullopt;
     }
-    std::optional<Point2D> operator()(const Circle &circle, const Line &line) { return operator()(line, circle); }
+    [[nodiscard]] std::optional<Point2D> operator()(const Circle &circle, const Line &line) const noexcept {
+        return operator()(line, circle);
+    }
 
-    std::optional<Point2D> operator()(const Circle &lhs, const Circle &rhs) {
+    [[nodiscard]] std::optional<Point2D> operator()(const Circle &lhs, const Circle &rhs) const noexcept {
         // Calculate distance between centers
         auto [dx, dy] = rhs.Center() - lhs.Center();
         double distance = std::hypot(dx, dy);
@@ -82,8 +84,8 @@ public:
             return std::nullopt;
         }
 
-        // Check for coincident circles
-        if (distance == 0 && lhs.radius == rhs.radius) {
+        // Check for concentric circles
+        if (distance == 0) {
             return std::nullopt;
         }
 
@@ -102,12 +104,12 @@ public:
         return std::nullopt;
     }
 
-    std::optional<Point2D> operator()(auto &, auto &) {
+    [[nodiscard]] std::optional<Point2D> operator()(auto &, auto &) const {
         throw std::logic_error("IntersectionVisitor: unsupported types");
     }
 };
 
-inline std::optional<Point2D> GetIntersectPoint(const Shape &shape1, const Shape &shape2) {
+[[nodiscard]] inline std::optional<Point2D> GetIntersectPoint(const Shape &shape1, const Shape &shape2) {
     return std::visit(IntersectionVisitor{}, shape1, shape2);
 }
 

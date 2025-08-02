@@ -31,30 +31,38 @@ struct Point2D {
     constexpr Point2D(double x, double y) : x(x), y(y) {}
 
     // Comparison
-    bool operator<(const Point2D &other) const {
+    [[nodiscard]] bool operator<(const Point2D &other) const noexcept {
         if (x != other.x)
             return x < other.x;
-        return y < other.y; 
+        return y < other.y;
     }
-    bool operator==(const Point2D &other) const { return std::abs(x - other.x) < EPSILON && std::abs(y - other.y) < EPSILON; }
+    [[nodiscard]] bool operator==(const Point2D &other) const noexcept {
+        return std::abs(x - other.x) < EPSILON && std::abs(y - other.y) < EPSILON;
+    }
 
     // Binary math operators
-    Point2D operator+(const Point2D &other) const { return {x + other.x, y + other.y}; }
-    Point2D operator-(const Point2D &other) const { return {x - other.x, y - other.y}; }
-    Point2D operator*(double value) const { return {x * value, y * value}; }
-    Point2D operator/(double value) const { return {x / value, y / value}; }
+    [[nodiscard]] Point2D operator+(const Point2D &other) const noexcept { return {x + other.x, y + other.y}; }
+    [[nodiscard]] Point2D operator-(const Point2D &other) const noexcept { return {x - other.x, y - other.y}; }
+    [[nodiscard]] Point2D operator*(double value) const noexcept { return {x * value, y * value}; }
+    [[nodiscard]] Point2D operator/(double value) const noexcept { return {x / value, y / value}; }
 
     // Binary geometry operations
-    double Dot(const Point2D &other) const { return x * other.x + y * other.y; }
-    double Cross(const Point2D &other) const { return x * other.y - y * other.x; }
-    double Length() const { return std::sqrt(x * x + y * y); }
-    double DistanceTo(const Point2D &other) const { return (*this - other).Length(); }
+    [[nodiscard]] double Dot(const Point2D &other) const noexcept { return x * other.x + y * other.y; }
+    [[nodiscard]] double Cross(const Point2D &other) const noexcept { return x * other.y - y * other.x; }
+    [[nodiscard]] double Length() const noexcept { return std::sqrt(x * x + y * y); }
+    [[nodiscard]] double DistanceTo(const Point2D &other) const noexcept { return (*this - other).Length(); }
 
-    Point2D Normalize() const {
+    [[nodiscard]] Point2D Normalize() const noexcept {
         const double len = Length();
         return len > 0 ? Point2D{x / len, y / len} : Point2D{0, 0};
     }
 };
+
+[[nodiscard]] inline double CrossProduct(Point2D p1, Point2D middle, Point2D p2) {
+    auto new_p1 = p1 - middle;
+    auto new_p2 = p2 - middle;
+    return new_p1.Cross(new_p2);
+}
 
 template <size_t N>
 struct Lines2D {
@@ -78,89 +86,79 @@ struct Lines2DDyn {
         x.push_back(px);
         y.push_back(py);
     }
-    Point2D Front() const { return {x.front(), y.front()}; }
+    [[nodiscard]] Point2D Front() const { return {x.front(), y.front()}; }
 };
 
 struct BoundingBox {
     double min_x, min_y, max_x, max_y;
 
     BoundingBox(double min_x_, double min_y_, double max_x_, double max_y_)
-        : min_x(min_x_)
-        , min_y(min_y_)
-        , max_x(max_x_)
-        , max_y(max_y_) {
-    } 
+        : min_x(min_x_), min_y(min_y_), max_x(max_x_), max_y(max_y_) {}
 
     template <typename T>
-    requires std::same_as<typename T::value_type, Point2D> 
-    BoundingBox(const T& vertices) {
+        requires std::same_as<typename T::value_type, Point2D>
+    BoundingBox(const T &vertices) {
         min_x = std::ranges::min(vertices, std::less<>(), &Point2D::x).x;
         min_y = std::ranges::min(vertices, std::less<>(), &Point2D::y).y;
         max_x = std::ranges::max(vertices, std::less<>(), &Point2D::x).x;
         max_y = std::ranges::max(vertices, std::less<>(), &Point2D::y).y;
     }
 
-    bool Overlaps(const BoundingBox &other) const {
+    [[nodiscard]] bool Overlaps(const BoundingBox &other) const {
         return !((max_x < other.min_x) || (min_x > other.max_x) || (max_y < other.min_y) || (min_y > other.max_y));
     }
-    double Width() const { return max_x - min_x; }
-    double Height() const { return max_y - min_y; }
-    Point2D Center() const { return {(min_x + max_x) / 2, (min_y + max_y) / 2}; }
+    [[nodiscard]] double Width() const { return max_x - min_x; }
+    [[nodiscard]] double Height() const { return max_y - min_y; }
+    [[nodiscard]] Point2D Center() const { return {(min_x + max_x) / 2, (min_y + max_y) / 2}; }
 };
 
 struct Line {
     Point2D start, end;
 
-    double Length() const { return start.DistanceTo(end); }
-    Point2D Direction() const { return end - start; }
-    BoundingBox BoundBox() const {
-        return {Vertices()};
-    }
-    double Height() const { return std::abs(end.y - start.y); }
-    Point2D Center() const { return (start + end) / 2; }
+    [[nodiscard]] double Length() const { return start.DistanceTo(end); }
+    [[nodiscard]] Point2D Direction() const { return end - start; }
+    [[nodiscard]] BoundingBox BoundBox() const { return {Vertices()}; }
+    [[nodiscard]] double Height() const { return std::abs(end.y - start.y); }
+    [[nodiscard]] Point2D Center() const { return (start + end) / 2; }
 
-    Lines2D<2> Lines() const { return {{start.x, end.x}, {start.y, end.y}}; }
-    std::array<Point2D, 2> Vertices() const { return {start, end}; }
+    [[nodiscard]] Lines2D<2> Lines() const { return {{start.x, end.x}, {start.y, end.y}}; }
+    [[nodiscard]] std::array<Point2D, 2> Vertices() const { return {start, end}; }
 };
 
 struct Triangle {
     Point2D a, b, c;
 
-    double Area() const {
+    [[nodiscard]] double Area() const {
         Point2D ab = b - a;
         Point2D ac = c - a;
         return 0.5 * std::abs(ab.Cross(ac));
     }
-    double Height() const {
+    [[nodiscard]] double Height() const {
         return (std::ranges::max(Vertices(), std::less<>(), &Point2D::y) -
                 std::ranges::min(Vertices(), std::less<>(), &Point2D::y))
             .y;
     }
-    Point2D Center() const { return (a + b + c) / 3; }
-    BoundingBox BoundBox() const {
-        return {Vertices()};
-    }
-    std::array<Point2D, 3> Vertices() const { return {a, b, c}; }
+    [[nodiscard]] Point2D Center() const { return (a + b + c) / 3; }
+    [[nodiscard]] BoundingBox BoundBox() const { return {Vertices()}; }
+    [[nodiscard]] std::array<Point2D, 3> Vertices() const { return {a, b, c}; }
 
-    Lines2D<4> Lines() const { return {{a.x, b.x, c.x, a.x}, {a.y, b.y, c.y, a.y}}; }
+    [[nodiscard]] Lines2D<4> Lines() const { return {{a.x, b.x, c.x, a.x}, {a.y, b.y, c.y, a.y}}; }
 };
 
 struct Rectangle {
     Point2D bottom_left;
     double width, height;
 
-    double Area() const { return width * height; }
-    double Height() const { return height; }
-    Point2D Center() const { return {bottom_left.x + width / 2, bottom_left.y + height / 2}; }
-    BoundingBox BoundBox() const {
-        return {Vertices()};
-    }
-    std::array<Point2D, 4> Vertices() const {
+    [[nodiscard]] double Area() const { return width * height; }
+    [[nodiscard]] double Height() const { return height; }
+    [[nodiscard]] Point2D Center() const { return {bottom_left.x + width / 2, bottom_left.y + height / 2}; }
+    [[nodiscard]] BoundingBox BoundBox() const { return {Vertices()}; }
+    [[nodiscard]] std::array<Point2D, 4> Vertices() const {
         return {bottom_left, bottom_left + Point2D(width, 0), bottom_left + Point2D(width, height),
                 bottom_left + Point2D(0, height)};
     }
 
-    Lines2D<5> Lines() const {
+    [[nodiscard]] Lines2D<5> Lines() const {
         return {{bottom_left.x, bottom_left.x, bottom_left.x + width, bottom_left.x + width, bottom_left.x},
                 {bottom_left.y, bottom_left.y + height, bottom_left.y + height, bottom_left.y, bottom_left.y}};
     }
@@ -168,9 +166,9 @@ struct Rectangle {
 
 inline auto genCirclePoints(size_t N, Point2D center, double radius) {
     return std::views::iota(size_t(0), N) | std::views::transform([N, center, radius](size_t i) {
-        const double angle = 2 * std::numbers::pi * i / N;
-        return Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle));
-    });
+               const double angle = 2 * std::numbers::pi * i / N;
+               return Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle));
+           });
 }
 
 struct RegularPolygon {
@@ -181,23 +179,20 @@ struct RegularPolygon {
     constexpr RegularPolygon(Point2D center, double radius, int sides)
         : center_p(center), radius(radius), sides(sides) {}
 
-    BoundingBox BoundBox() const {
-        return {Vertices()};
-    }
-    double Height() const { return std::abs(2 * radius); }
-    Point2D Center() const { return center_p; }
+    [[nodiscard]] BoundingBox BoundBox() const { return {Vertices()}; }
+    [[nodiscard]] double Height() const { return std::abs(2 * radius); }
+    [[nodiscard]] Point2D Center() const { return center_p; }
 
-    std::vector<Point2D> Vertices() const {
+    [[nodiscard]] std::vector<Point2D> Vertices() const {
         return genCirclePoints(sides, center_p, radius) | std::ranges::to<std::vector>();
     }
-    Lines2DDyn Lines(size_t N = 100) const {
+    [[nodiscard]] Lines2DDyn Lines(size_t N = 100) const {
         Lines2DDyn result;
         size_t size = std::min<size_t>(N, sides + 1);
         result.Reserve(size);
 
-        std::ranges::for_each(genCirclePoints(size, center_p, radius), [&result](const Point2D& p) {
-            result.PushBack(p.x, p.y);
-        });
+        std::ranges::for_each(genCirclePoints(size, center_p, radius),
+                              [&result](const Point2D &p) { result.PushBack(p.x, p.y); });
         result.PushBack(result.Front());
         return result;
     }
@@ -209,23 +204,22 @@ struct Circle {
 
     constexpr Circle(Point2D center, double radius) : center_p(center), radius(radius) {}
 
-    BoundingBox BoundBox() const {
+    [[nodiscard]] BoundingBox BoundBox() const {
         return {center_p.x - radius, center_p.y - radius, center_p.x + radius, center_p.y + radius};
     }
-    double Height() const { return std::abs(2 * radius); }
-    Point2D Center() const { return center_p; }
+    [[nodiscard]] double Height() const { return std::abs(2 * radius); }
+    [[nodiscard]] Point2D Center() const { return center_p; }
 
-    std::vector<Point2D> Vertices(size_t N = 30) const {
+    [[nodiscard]] std::vector<Point2D> Vertices(size_t N = 30) const {
         return genCirclePoints(N, center_p, radius) | std::ranges::to<std::vector>();
     }
 
-    Lines2DDyn Lines(size_t N = 100) const {
+    [[nodiscard]] Lines2DDyn Lines(size_t N = 100) const {
         Lines2DDyn result;
         result.Reserve(N);
 
-        std::ranges::for_each(genCirclePoints(N, center_p, radius), [&result](const Point2D& p) {
-            result.PushBack(p.x, p.y);
-        });
+        std::ranges::for_each(genCirclePoints(N, center_p, radius),
+                              [&result](const Point2D &p) { result.PushBack(p.x, p.y); });
         result.PushBack(result.Front());
         return result;
     }
@@ -233,17 +227,16 @@ struct Circle {
 
 class Polygon {
 public:
-    constexpr Polygon(const std::vector<Point2D> &points) 
-        : points_(points)
-        , bounding_box_(points) {
+    constexpr Polygon(const std::vector<Point2D> &points) : points_(points), bounding_box_(points) {}
+
+    [[nodiscard]] BoundingBox BoundBox() const { return bounding_box_; }
+    [[nodiscard]] double Height() const { return bounding_box_.max_y - bounding_box_.min_y; }
+    [[nodiscard]] Point2D Center() const {
+        return std::ranges::fold_left(points_, Point2D(0, 0), std::plus<>()) / points_.size();
     }
 
-    BoundingBox BoundBox() const { return bounding_box_; }
-    double Height() const { return bounding_box_.max_y - bounding_box_.min_y; }
-    Point2D Center() const { return std::ranges::fold_left(points_, Point2D(0, 0), std::plus<>()) / points_.size(); }
-
-    const std::vector<Point2D> &Vertices() const { return points_; }
-    Lines2DDyn Lines(size_t N = 100) const {
+    [[nodiscard]] const std::vector<Point2D> &Vertices() const { return points_; }
+    [[nodiscard]] Lines2DDyn Lines(size_t N = 100) const {
         Lines2DDyn result;
         size_t size = std::min(N, points_.size());
         result.Reserve(points_.size());

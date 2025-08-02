@@ -65,7 +65,7 @@ private:
     std::uniform_int_distribution<int> type_dist;
 };
 
-std::vector<std::pair<Shape, Shape>> FindAllCollisions(const Shapes &shapes) {
+[[nodiscard]] std::vector<std::pair<Shape, Shape>> FindAllCollisions(const Shapes &shapes) {
     namespace rv = std::ranges::views;
     auto unique_pairs = rv::iota(0u, shapes.size()) | rv::transform([&shapes](size_t i) {
                             return rv::iota(i + 1, shapes.size()) |
@@ -77,7 +77,7 @@ std::vector<std::pair<Shape, Shape>> FindAllCollisions(const Shapes &shapes) {
            std::ranges::to<std::vector>();
 }
 
-std::optional<size_t> FindHighestShape(const Shapes &shapes) {
+[[nodiscard]] std::optional<size_t> FindHighestShape(const Shapes &shapes) noexcept {
     if (shapes.empty()) {
         return std::nullopt;
     }

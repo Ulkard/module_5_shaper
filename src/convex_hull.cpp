@@ -8,15 +8,24 @@
 
 namespace geometry::convex_hull {
 
-double CrossProduct(Point2D p1, Point2D middle, Point2D p2) {
-    auto new_p1 = p1 - middle;
-    auto new_p2 = p2 - middle;
-    return new_p1.Cross(new_p2);
-}
+class StackForGrahamScan {
+public:
+    void Push(const Point2D &p) { s.push_back(p); }
+    void Pop() { s.pop_back(); }
+
+    [[nodiscard]] size_t Size() { return s.size(); }
+    [[nodiscard]] Point2D Top() { return s.back(); }
+    [[nodiscard]] Point2D NextToTop() { return *std::prev(s.end(), 2); }
+
+    [[nodiscard]] std::vector<Point2D> &&Extract() { return std::move(s); }
+
+private:
+    std::vector<Point2D> s;
+};
 
 struct ShapeToPointsVisitor {
     template <typename T>
-    std::vector<Point2D> operator()(const T &shape) {
+    [[nodiscard]] std::vector<Point2D> operator()(const T &shape) {
         std::vector<Point2D> result;
         for (const auto &point : shape.Vertices()) {
             result.push_back(point);
@@ -27,15 +36,14 @@ struct ShapeToPointsVisitor {
 
 enum class Orientation { COLLINEAR = 0, CW, CCW };
 
-Orientation getOrientation(const Point2D &p0, const Point2D &p1, const Point2D &p2) {
-    double val = (p1.y - p0.y) * (p2.x - p1.x) - (p1.x - p0.x) * (p2.y - p1.y);
-
+[[nodiscard]] Orientation getOrientation(const Point2D &p0, const Point2D &p1, const Point2D &p2) {
+    double val = CrossProduct(p2, p1, p0);
     if (fabs(val) < EPSILON)
         return Orientation::COLLINEAR;
     return (val > 0) ? Orientation::CW : Orientation::CCW;
 }
 
-GeometryResult<std::vector<Point2D>> GrahamScan(const Shapes &shapes) {
+[[nodiscard]] GeometryResult<std::vector<Point2D>> GrahamScan(const Shapes &shapes) {
     namespace rv = std::ranges::views;
     ShapeToPointsVisitor visitor;
     StackForGrahamScan hull_stack;
